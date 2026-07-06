@@ -1,4 +1,3 @@
-from torch import embedding
 from dotenv import load_dotenv
 import os
 from src.helper import load_pdf_files, filter_to_minimal_docs, text_split, download_embeddings
