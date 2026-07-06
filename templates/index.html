@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Assistant</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="static/style.css" />
+</head>
+
+<body style="display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #000;">
+
+  <main class="ai-container" id="ai-container">
+
+    <!-- Active Chat Header -->
+    <div class="chat-active-header">
+      <div class="active-header-title">
+        <span class="active-header-status"></span>
+        Medical AI Assistant
+      </div>
+    </div>
+
+    <!-- Header -->
+    <div class="ai-header" id="ai-header">
+      <div class="sparkle">✦<span>✦</span></div>
+      <h1>Ask our Medical AI anything</h1>
+    </div>
+
+    <!-- Bottom Content -->
+    <div class="chat-area">
+
+      <!-- Suggestions wrapper -->
+      <div id="suggestions-wrapper">
+        <p class="suggestions-title">
+          Suggestions on what to ask our AI
+        </p>
+
+        <!-- Suggestion Cards -->
+        <div class="suggestions">
+
+          <button class="suggestion-card">
+            What is Acne?
+          </button>
+
+          <button class="suggestion-card">
+            What are the common symptoms of Influenza?
+          </button>
+
+          <button class="suggestion-card">
+            How is Diabetes managed?
+          </button>
+
+        </div>
+      </div>
+
+      <!-- Chat Messages Container -->
+      <div class="chat-messages" id="chat-messages" style="display: none;"></div>
+
+      <!-- Chat Input -->
+      <div class="chat-input-wrapper">
+
+        <input id="chat-input" type="text" placeholder="Ask me anything about medical conditions or symptoms..." />
+
+        <button class="send-button" id="send-button" aria-label="Send message">
+          <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 5L35 20L6 35L10 23L24 20L10 17L6 5Z" stroke="currentColor" stroke-width="2.5"
+              stroke-linejoin="round" />
+          </svg>
+        </button>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const aiContainer = document.getElementById('ai-container');
+      const header = document.getElementById('ai-header');
+      const suggestionsWrapper = document.getElementById('suggestions-wrapper');
+      const chatMessages = document.getElementById('chat-messages');
+      const chatInput = document.getElementById('chat-input');
+      const sendButton = document.getElementById('send-button');
+
+      function appendMessage(sender, text) {
+        const msgDiv = document.createElement('div');
+        msgDiv.classList.add('message', sender);
+
+        const contentDiv = document.createElement('div');
+        contentDiv.classList.add('message-content');
+        contentDiv.textContent = text;
+
+        msgDiv.appendChild(contentDiv);
+        chatMessages.appendChild(msgDiv);
+
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+
+      function showTypingIndicator() {
+        const indicator = document.createElement('div');
+        indicator.classList.add('typing-indicator');
+        indicator.id = 'typing-indicator';
+
+        for (let i = 0; i < 3; i++) {
+          const dot = document.createElement('div');
+          dot.classList.add('typing-dot');
+          indicator.appendChild(dot);
+        }
+
+        chatMessages.appendChild(indicator);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+
+      function removeTypingIndicator() {
+        const indicator = document.getElementById('typing-indicator');
+        if (indicator) {
+          indicator.remove();
+        }
+      }
+
+      async function handleSend(text) {
+        const queryText = text || chatInput.value.trim();
+        if (!queryText) return;
+
+        chatInput.value = '';
+
+        if (!aiContainer.classList.contains('chat-active')) {
+          aiContainer.classList.add('chat-active');
+          header.style.display = 'none';
+          suggestionsWrapper.style.display = 'none';
+          chatMessages.style.display = 'flex';
+        }
+
+        appendMessage('user', queryText);
+        showTypingIndicator();
+
+        try {
+          const response = await fetch('/get', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({ msg: queryText })
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to get response');
+          }
+
+          const dataText = await response.text();
+          removeTypingIndicator();
+          appendMessage('assistant', dataText);
+        } catch (err) {
+          console.error(err);
+          removeTypingIndicator();
+          appendMessage('assistant', 'Sorry, I encountered an error. Please try again.');
+        }
+      }
+
+      sendButton.addEventListener('click', () => handleSend());
+      chatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          handleSend();
+        }
+      });
+
+      const suggestionCards = document.querySelectorAll('.suggestion-card');
+      suggestionCards.forEach(card => {
+        card.addEventListener('click', () => {
+          const text = card.textContent.trim();
+          handleSend(text);
+        });
+      });
+    });
+  </script>
+
+</body>
+
+</html>
